@@ -256,78 +256,122 @@ Button("Verificar", UDim2.fromScale(0.54,0.55), function()
 	end)
 
 	--================ ESP TAB =================
-	local ESP=false
-	local Tracer=false
-	local ESPColor=Color3.fromRGB(255,0,0)
-	local Cache={}
-	local Bones={
-		{"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-		{"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-		{"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-		{"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-		{"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"}
-	}
-	HackTab:CreateToggle({Name="ESP Skeleton",CurrentValue=false,Callback=function(v) ESP=v end})
-	HackTab:CreateToggle({Name="Tracers",CurrentValue=false,Callback=function(v) Tracer=v end})
-	HackTab:CreateColorPicker({Name="ESP Color",Color=ESPColor,Callback=function(c) ESPColor=c end})
+--================ ESP TAB =================
+local ESP=false
+local Tracer=false
+local ESPColor=Color3.fromRGB(255,0,0)
+local Cache={}
 
-	RunService.RenderStepped:Connect(function()
-		local myHRP=LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-		for _,plr in ipairs(Players:GetPlayers()) do
-			if plr~=LP and plr.Character and myHRP then
-				if not Cache[plr] then
-					Cache[plr]={lines={},name=Drawing.new("Text"),tracer=Drawing.new("Line")}
-					for i=1,#Bones do
-						local l=Drawing.new("Line"); l.Thickness=2; Cache[plr].lines[i]=l
-					end
-					Cache[plr].name.Center=true
-					Cache[plr].name.Outline=true
-					Cache[plr].name.Size=14
-					Cache[plr].tracer.Thickness=1.5
+-- CONTROLE DE PULSO (5s)
+local PulseVisible = true
+
+task.spawn(function()
+	while true do
+		task.wait(5)        -- tempo visível
+		PulseVisible = false
+		task.wait(0.2)      -- tempo invisível (pisca)
+		PulseVisible = true
+	end
+end)
+
+local Bones={
+	{"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
+	{"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+	{"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+	{"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+	{"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"}
+}
+
+HackTab:CreateToggle({
+	Name="ESP Skeleton",
+	CurrentValue=false,
+	Callback=function(v) ESP=v end
+})
+
+HackTab:CreateToggle({
+	Name="Tracers",
+	CurrentValue=false,
+	Callback=function(v) Tracer=v end
+})
+
+HackTab:CreateColorPicker({
+	Name="ESP Color",
+	Color=ESPColor,
+	Callback=function(c) ESPColor=c end
+})
+
+RunService.RenderStepped:Connect(function()
+	local myHRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+	if not myHRP then return end
+
+	for _,plr in ipairs(Players:GetPlayers()) do
+		if plr~=LP and plr.Character then
+
+			if not Cache[plr] then
+				Cache[plr]={
+					lines={},
+					name=Drawing.new("Text"),
+					tracer=Drawing.new("Line")
+				}
+				for i=1,#Bones do
+					local l=Drawing.new("Line")
+					l.Thickness=2
+					Cache[plr].lines[i]=l
 				end
-				local char=plr.Character
-				local data=Cache[plr]
+				Cache[plr].name.Center=true
+				Cache[plr].name.Outline=true
+				Cache[plr].name.Size=14
+				Cache[plr].tracer.Thickness=1.5
+			end
 
-				local head=char:FindFirstChild("Head")
-				if head then
-					local p,v=Camera:WorldToViewportPoint(head.Position+Vector3.new(0,1.6,0))
-					data.name.Visible=ESP and v
-					data.name.Text=plr.Name
-					data.name.Position=Vector2.new(p.X,p.Y)
-					data.name.Color=ESPColor
-				end
+			local char=plr.Character
+			local data=Cache[plr]
 
-				for i,b in ipairs(Bones) do
-					local p1=char:FindFirstChild(b[1])
-					local p2=char:FindFirstChild(b[2])
-					local l=data.lines[i]
-					if p1 and p2 then
-						local s1,v1=Camera:WorldToViewportPoint(p1.Position)
-						local s2,v2=Camera:WorldToViewportPoint(p2.Position)
-						l.Visible=ESP and v1 and v2
-						l.From=Vector2.new(s1.X,s1.Y)
-						l.To=Vector2.new(s2.X,s2.Y)
-						l.Color=ESPColor
-					else
-						l.Visible=false
-					end
-				end
+			-- NAME
+			local head=char:FindFirstChild("Head")
+			if head then
+				local p,v=Camera:WorldToViewportPoint(head.Position+Vector3.new(0,1.6,0))
+				data.name.Visible = ESP and PulseVisible and v
+				data.name.Text=plr.Name
+				data.name.Position=Vector2.new(p.X,p.Y)
+				data.name.Color=ESPColor
+			else
+				data.name.Visible=false
+			end
 
-				local hrp=char:FindFirstChild("HumanoidRootPart")
-				if hrp then
-					local f,v1=Camera:WorldToViewportPoint(myHRP.Position)
-					local t,v2=Camera:WorldToViewportPoint(hrp.Position)
-					data.tracer.Visible=Tracer and v1 and v2
-					data.tracer.From=Vector2.new(f.X,f.Y)
-					data.tracer.To=Vector2.new(t.X,t.Y)
-					data.tracer.Color=ESPColor
+			-- SKELETON
+			for i,b in ipairs(Bones) do
+				local p1=char:FindFirstChild(b[1])
+				local p2=char:FindFirstChild(b[2])
+				local l=data.lines[i]
+				if p1 and p2 then
+					local s1,v1=Camera:WorldToViewportPoint(p1.Position)
+					local s2,v2=Camera:WorldToViewportPoint(p2.Position)
+					l.Visible = ESP and PulseVisible and v1 and v2
+					l.From=Vector2.new(s1.X,s1.Y)
+					l.To=Vector2.new(s2.X,s2.Y)
+					l.Color=ESPColor
 				else
-					data.tracer.Visible=false
+					l.Visible=false
 				end
 			end
+
+			-- TRACER
+			local hrp=char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				local f,v1=Camera:WorldToViewportPoint(myHRP.Position)
+				local t,v2=Camera:WorldToViewportPoint(hrp.Position)
+				data.tracer.Visible = Tracer and PulseVisible and v1 and v2
+				data.tracer.From=Vector2.new(f.X,f.Y)
+				data.tracer.To=Vector2.new(t.X,t.Y)
+				data.tracer.Color=ESPColor
+			else
+				data.tracer.Visible=false
+			end
 		end
-	end)
+	end
 end)
+
 
 print("CARLIN HUB CARREGADO COM SUCESSO")
 

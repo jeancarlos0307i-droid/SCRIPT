@@ -296,13 +296,175 @@ Button("Verificar", UDim2.fromScale(0.54,0.55), function()
 		end
 	end)
 
-	--================ ESP TAB (ORIGINAL, NÃO ALTERADO) =================
-	-- (continua exatamente igual ao seu código)
-end)
+	--================ BOUNTY HUNTER TAB =================
+	local BountyTab = Window:CreateTab("🎯 Bounty Hunter", 4483362458)
 
-print("CARLIN HUB CARREGADO COM SUCESSO")
-end)
+	local SelectedPlayer = nil
+	local Following = false
+	local FollowConnection
 
-if not ok then
-	warn("ERRO NO CARLIN HUB:", err)
-end
+	local function GetPlayerNames()
+		local list = {}
+		for _,p in ipairs(Players:GetPlayers()) do
+			if p ~= LP then
+				table.insert(list, p.Name)
+			end
+		end
+		return list
+	end
+
+	local PlayerDropdown = BountyTab:CreateDropdown({
+		Name = "Players do Servidor",
+		Options = GetPlayerNames(),
+		CurrentOption = {},
+		Callback = function(opt)
+			if opt[1] then
+				SelectedPlayer = Players:FindFirstChild(opt[1])
+			end
+		end
+	})
+
+	-- Atualiza lista automaticamente
+	Players.PlayerAdded:Connect(function()
+		PlayerDropdown:Refresh(GetPlayerNames(), true)
+	end)
+	Players.PlayerRemoving:Connect(function()
+		PlayerDropdown:Refresh(GetPlayerNames(), true)
+	end)
+
+	BountyTab:CreateToggle({
+		Name = "Caçar Player",
+		CurrentValue = false,
+		Callback = function(v)
+			Following = v
+
+			if FollowConnection then
+				FollowConnection:Disconnect()
+				FollowConnection = nil
+			end
+
+			if v and SelectedPlayer then
+				FollowConnection = RunService.Heartbeat:Connect(function()
+					if LP.Character
+					and SelectedPlayer
+					and SelectedPlayer.Character
+					and SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+					and LP.Character:FindFirstChild("HumanoidRootPart") then
+
+						local targetHRP = SelectedPlayer.Character.HumanoidRootPart
+						local myHRP = LP.Character.HumanoidRootPart
+
+						myHRP.CFrame =
+							targetHRP.CFrame *
+							CFrame.new(0, 10, 0)
+					end
+				end)
+			end
+		end
+	})
+	--================ ESP TAB =================
+	local ESPTab = Window:CreateTab("👁 ESP", 4483362458)
+
+	local PlayerESP = false
+	local FruitESP = false
+	local ESPObjects = {}
+
+	local function ClearESP()
+		for _,v in pairs(ESPObjects) do
+			if v then v:Destroy() end
+		end
+		ESPObjects = {}
+	end
+
+	--========== ESP PLAYERS ==========
+	ESPTab:CreateToggle({
+		Name = "ESP Players",
+		CurrentValue = false,
+		Callback = function(v)
+			PlayerESP = v
+			ClearESP()
+
+			if v then
+				for _,p in ipairs(Players:GetPlayers()) do
+					if p ~= LP then
+						local function AddESP(char)
+							local hrp = char:WaitForChild("HumanoidRootPart",5)
+							local hum = char:WaitForChild("Humanoid",5)
+							if not hrp or not hum then return end
+
+							local bb = Instance.new("BillboardGui", hrp)
+							bb.Size = UDim2.fromScale(0,0)
+							bb.AlwaysOnTop = true
+
+							local txt = Instance.new("TextLabel", bb)
+							txt.Size = UDim2.fromScale(1,1)
+							txt.BackgroundTransparency = 1
+							txt.TextColor3 = Color3.fromRGB(255,0,0)
+							txt.TextStrokeTransparency = 0
+							txt.Font = Enum.Font.GothamBold
+							txt.TextSize = 14
+
+							RunService.RenderStepped:Connect(function()
+								if PlayerESP and hum then
+									txt.Text =
+										p.Name ..
+										"\nVida: " .. math.floor(hum.Health)
+								end
+							end)
+
+							table.insert(ESPObjects, bb)
+						end
+
+						if p.Character then
+							AddESP(p.Character)
+						end
+						p.CharacterAdded:Connect(AddESP)
+					end
+				end
+			end
+		end
+	})
+
+	--========== ESP FRUIT ==========
+	ESPTab:CreateToggle({
+		Name = "ESP Fruit",
+		CurrentValue = false,
+		Callback = function(v)
+			FruitESP = v
+			ClearESP()
+
+			if v then
+				RunService.RenderStepped:Connect(function()
+					if not FruitESP then return end
+
+					for _,obj in ipairs(workspace:GetDescendants()) do
+						if obj:IsA("BasePart") and obj.Name:lower():find("fruit") then
+							if not obj:FindFirstChild("FruitESP") then
+								local bb = Instance.new("BillboardGui", obj)
+								bb.Name = "FruitESP"
+								bb.AlwaysOnTop = true
+								bb.Size = UDim2.fromScale(0,0)
+
+								local txt = Instance.new("TextLabel", bb)
+								txt.Size = UDim2.fromScale(1,1)
+								txt.BackgroundTransparency = 1
+								txt.TextColor3 = Color3.fromRGB(255,255,255)
+								txt.TextStrokeTransparency = 0
+								txt.Font = Enum.Font.GothamBold
+								txt.TextSize = 13
+
+								RunService.RenderStepped:Connect(function()
+									if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+										local dist = (LP.Character.HumanoidRootPart.Position - obj.Position).Magnitude
+										txt.Text = "FRUIT\n"..math.floor(dist).."m"
+									end
+								end)
+
+								table.insert(ESPObjects, bb)
+							end
+						end
+					end
+				end)
+			end
+		end
+	})

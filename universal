@@ -162,6 +162,7 @@ Button("Verificar", UDim2.fromScale(0.54,0.55), function()
 	--================ MOVEMENT TAB =================
 	local MoveTab = Window:CreateTab("🏃 Movement", 4483362458)
 
+	-- NOCLIP
 	local Noclip=false
 	MoveTab:CreateToggle({
 		Name="Noclip", CurrentValue=false,
@@ -175,6 +176,7 @@ Button("Verificar", UDim2.fromScale(0.54,0.55), function()
 		end
 	end)
 
+	-- CLICK TP
 	local ClickTP=false
 	MoveTab:CreateToggle({
 		Name="Click TP", CurrentValue=false,
@@ -184,27 +186,47 @@ Button("Verificar", UDim2.fromScale(0.54,0.55), function()
 		if gp then return end
 		if ClickTP and i.UserInputType==Enum.UserInputType.MouseButton1 then
 			local m=LP:GetMouse()
-			if m.Hit and LP.Character then LP.Character:MoveTo(m.Hit.p) end
+			if m.Hit and LP.Character then
+				LP.Character:MoveTo(m.Hit.p)
+			end
 		end
 	end)
 
-	local Fly=false
+	--================ FLY (COM VELOCIDADE) =================
+	local Fly = false
+	local FlySpeed = 60
 	local BV
+
 	MoveTab:CreateToggle({
-		Name="Fly", CurrentValue=false,
+		Name="Fly",
+		CurrentValue=false,
 		Callback=function(v)
 			Fly=v
-			if not v and BV then BV:Destroy(); BV=nil end
+			if not v and BV then
+				BV:Destroy()
+				BV=nil
+			end
 		end
 	})
+
+	MoveTab:CreateSlider({
+		Name="Fly Speed",
+		Range={20,200},
+		CurrentValue=60,
+		Callback=function(v)
+			FlySpeed=v
+		end
+	})
+
 	RunService.RenderStepped:Connect(function()
 		if Fly and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-			local hrp=LP.Character.HumanoidRootPart
+			local hrp = LP.Character.HumanoidRootPart
 			if not BV then
-				BV=Instance.new("BodyVelocity",hrp)
-				BV.MaxForce=Vector3.new(1e9,1e9,1e9)
+				BV = Instance.new("BodyVelocity")
+				BV.MaxForce = Vector3.new(1e9,1e9,1e9)
+				BV.Parent = hrp
 			end
-			BV.Velocity=Camera.CFrame.LookVector*60
+			BV.Velocity = Camera.CFrame.LookVector * FlySpeed
 		end
 	end)
 
@@ -295,9 +317,6 @@ Button("Verificar", UDim2.fromScale(0.54,0.55), function()
 			end
 		end
 	end)
-
-	--================ ESP TAB (ORIGINAL, NÃO ALTERADO) =================
-	-- (continua exatamente igual ao seu código)
 end)
 
 print("CARLIN HUB CARREGADO COM SUCESSO")
